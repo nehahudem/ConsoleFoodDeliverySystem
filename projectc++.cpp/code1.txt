@@ -1,0 +1,602 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+
+using namespace std;
+
+class User {
+public:
+    virtual void login() = 0;
+    virtual void displayMenu() = 0;
+    virtual void viewBookedItems() = 0;
+};
+
+class Customer : public User {
+private:
+    string username;
+    vector<string> bookedItems;
+     
+public:
+    void login() override {
+        cout << "Enter customer username: ";
+        cin >> username;
+    }
+
+    void displayMenu() override {
+        ifstream menuFile("menu.txt");
+        if (menuFile.is_open()) {
+            cout << "\nthe items in the menu are:\n";
+            string menuItem;
+            while (getline(menuFile, menuItem)) {
+                cout << menuItem << endl;
+            }
+            menuFile.close();
+        } else {
+            cout << "Error opening menu file.\n";
+        }
+    }
+
+    void viewBookedItems() override {
+        cout << "Booked Items:\n";
+        for (const string& item : bookedItems) {
+            cout << item << endl;
+        }
+    
+        // Write the booked items to the user_orders.txt file
+        ofstream userOrdersFile("user_orders.txt", ios::app);
+        if (userOrdersFile.is_open()) {
+            userOrdersFile << "Booked Items for Customer: " << username << "\n";
+            for (const string& item : bookedItems) {
+                userOrdersFile << item << endl;
+            }
+            userOrdersFile << "----------\n";
+            userOrdersFile.close();
+            cout << "Booked items written to user_orders.txt.\n";
+        } else {
+            cout << "Error opening user_orders.txt file.\n";
+        }
+    }
+
+    void bookItem(int itemNumber) {
+        ifstream menuFile("menu.txt");
+        if (menuFile.is_open()) {
+            string menuItem;
+            int count = 0;
+            while (getline(menuFile, menuItem)) {
+                count++;
+                if (count == itemNumber) {
+                    bookedItems.push_back(menuItem);
+                    cout << "Item booked successfully!\n";
+                    break;
+                }
+            }
+            menuFile.close();
+        } else {
+            cout << "Error opening menu file.\n";
+        }
+    }
+};
+
+class RestaurantManager : public User {
+private:
+    string username;
+
+    bool isUsernameAllowed(const string& name) const {
+        ifstream namesFile("names.txt");
+        if (namesFile.is_open()) {
+            string storedName;
+            while (getline(namesFile, storedName)) {
+                if (name == storedName) {
+                    namesFile.close();
+                    return true; // Username found in names.txt
+                }
+            }
+            namesFile.close();
+        } else {
+            cout << "Error opening names.txt file.\n";
+        }
+
+        return false; // Username not found in names.txt
+    }
+
+public:
+    void login() override {
+        cout << "Enter restaurant manager username: ";
+        cin >> username;
+
+        // Check if the username is allowed to login
+        if (!isUsernameAllowed(username)) {
+            cout << "Invalid username for a Restaurant Manager. Access denied.\n";
+            exit(0); // Terminate the program
+        }
+    }
+
+    void displayMenu() override {
+        ifstream menuFile("menu.txt");
+        if (menuFile.is_open()) {
+            string menuItem;
+            int count = 1;
+            while (getline(menuFile, menuItem)) {
+                cout << count << ". " << menuItem << endl;
+                count++;
+            }
+            menuFile.close();
+        } else {
+            cout << "Error opening menu file.\n";
+        }
+    }
+
+    void modifyMenu() {
+        // Check if the username is allowed to modify the menu
+        if (!isUsernameAllowed(username)) {
+            cout << "Access denied. You are not authorized to modify the menu.\n";
+            return;
+        }
+
+        ofstream menuFile("menu.txt", ios::app);
+        if (menuFile.is_open()) {
+            cout << "Enter the new item to add to the menu: ";
+            string newItem;
+            cin.ignore();
+            getline(cin, newItem);
+
+            menuFile << newItem << endl;
+            menuFile.close();
+            cout << "Menu updated successfully!\n";
+        } else {
+            cout << "Error opening menu file.\n";
+        }
+    }
+
+    // Implement viewBookedItems to fulfill the pure virtual function requirement
+    void viewBookedItems() override {
+        cout << "Restaurant Manager doesn't have booked items.\n";
+    }
+};
+class DeliveryPerson : public User {
+private:
+    string username;
+
+public:
+    void login() override {
+        cout << "Enter delivery person username: ";
+        cin >> username;
+    }
+
+    void displayMenu() override {
+        cout << "Delivery person doesn't have a menu.\n";
+    }
+
+    void viewBookedItems() override {
+        // Display the list of delivery orders
+        ifstream deliveryOrdersFile("delivery_orders.txt");
+        if (deliveryOrdersFile.is_open()) {
+            string order;
+            int count = 1;
+            while (getline(deliveryOrdersFile, order)) {
+                cout << count << ". " << order << endl;
+                count++;
+            }
+            deliveryOrdersFile.close();
+        } else {
+            cout << "Error opening delivery orders file.\n";
+        }
+    }
+
+    void updateDeliveryStatus() {
+        // Update the delivery status for a selected order
+        // Read delivery orders from the file, update their status, and write back to the file
+        vector<string> deliveryOrders;
+
+        // Read delivery orders from the file
+        ifstream deliveryOrdersFile("delivery_orders.txt");
+        if (deliveryOrdersFile.is_open()) {
+            string order;
+            while (getline(deliveryOrdersFile, order)) {
+                deliveryOrders.push_back(order);
+            }
+            deliveryOrdersFile.close();
+        } else {
+            cout << "Error opening delivery orders file.\n";
+            return;
+        }
+
+        // Display the delivery orders
+        cout << "Delivery Orders:\n";
+        for (size_t i = 0; i < deliveryOrders.size(); ++i) {
+            cout << i + 1 << ". " << deliveryOrders[i] << endl;
+        }
+
+        // Ask the user to enter the order number to update the status
+        cout << "Enter the order number to update the delivery status (or -1 to finish): ";
+        int orderNumber;
+        cin >> orderNumber;
+
+        while (orderNumber != -1) {
+            if (orderNumber >= 1 && orderNumber <= static_cast<int>(deliveryOrders.size())) {
+                // Update the status for the selected order
+                // You can modify the status field in the string accordingly
+                cout << "Enter the new delivery status for order " << orderNumber << ": ";
+                string newStatus;
+                cin.ignore();
+                getline(cin, newStatus);
+
+                // Update the status in the vector
+                deliveryOrders[orderNumber - 1] += " - " + newStatus;
+
+                cout << "Delivery status updated successfully!\n";
+            } else {
+                cout << "Invalid order number. Please try again.\n";
+            }
+
+            // Ask for the next order number to update
+            cout << "Enter the next order number to update the delivery status (or -1 to finish): ";
+            cin >> orderNumber;
+        }
+
+        // Write the updated delivery orders back to the file
+        ofstream updatedDeliveryOrdersFile("delivery_orders.txt");
+        if (updatedDeliveryOrdersFile.is_open()) {
+            for (const string& order : deliveryOrders) {
+                updatedDeliveryOrdersFile << order << "\n";
+            }
+            updatedDeliveryOrdersFile.close();
+        } else {
+            cout << "Error updating delivery orders file.\n";
+        }
+    }
+};
+
+int main() {
+    Customer customer;
+    RestaurantManager manager;
+    DeliveryPerson deliveryPerson;
+
+    int userType;
+    do {
+        cout << "Choose user type:\n1. Customer\n2. Restaurant Manager\n3. Delivery Person\n4. Exit\n";
+        cin >> userType;
+
+        switch (userType) {
+            case 1:
+                customer.login();
+                customer.displayMenu();
+
+                int customerChoice;
+                cout << "Enter the item number to book (or -1 to finish): ";
+                cin >> customerChoice;
+
+                while (customerChoice != -1) {
+                    customer.bookItem(customerChoice);
+                    cout << "Enter the next item number to book (or -1 to finish): ";
+                    cin >> customerChoice;
+                }
+
+                customer.viewBookedItems();
+                break;
+
+            case 2:
+                manager.login();
+                manager.displayMenu();
+                manager.modifyMenu();
+                break;
+
+            case 3:
+                deliveryPerson.login();
+                deliveryPerson.viewBookedItems();
+                deliveryPerson.updateDeliveryStatus();
+                break;
+
+            case 4:
+                cout << "Exiting the system.\n";
+                break;
+
+            default:
+                cout << "Invalid user type. Please try again.\n";
+        }
+    } while (userType != 4);
+
+    return 0;
+}
+[3:09 PM, 11/22/2023] Keertsss💗: #include <iostream>
+#include <fstream>
+#include <vector>
+
+using namespace std;
+
+class User {
+public:
+    virtual void login() = 0;
+    virtual void displayMenu() = 0;
+    virtual void viewBookedItems() = 0;
+};
+
+class Customer : public User {
+private:
+    string username;
+    vector<string> bookedItems;
+     
+public:
+    void login() override {
+        cout << "Enter customer username: ";
+        cin >> username;
+    }
+
+    void displayMenu() override {
+        ifstream menuFile("menu.txt");
+        if (menuFile.is_open()) {
+            cout << "\nthe items in the menu are:\n";
+            string menuItem;
+            while (getline(menuFile, menuItem)) {
+                cout << menuItem << endl;
+            }
+            menuFile.close();
+        } else {
+            cout << "Error opening menu file.\n";
+        }
+    }
+
+    void viewBookedItems() override {
+        cout << "Booked Items:\n";
+        for (const string& item : bookedItems) {
+            cout << item << endl;
+        }
+    
+        // Write the booked items to the user_orders.txt file
+        ofstream userOrdersFile("user_orders.txt", ios::app);
+        if (userOrdersFile.is_open()) {
+            userOrdersFile << "Booked Items for Customer: " << username << "\n";
+            for (const string& item : bookedItems) {
+                userOrdersFile << item << endl;
+            }
+            userOrdersFile << "----------\n";
+            userOrdersFile.close();
+            cout << "Booked items written to user_orders.txt.\n";
+        } else {
+            cout << "Error opening user_orders.txt file.\n";
+        }
+    }
+
+    void bookItem(int itemNumber) {
+        ifstream menuFile("menu.txt");
+        if (menuFile.is_open()) {
+            string menuItem;
+            int count = 0;
+            while (getline(menuFile, menuItem)) {
+                count++;
+                if (count == itemNumber) {
+                    bookedItems.push_back(menuItem);
+                    cout << "Item booked successfully!\n";
+                    break;
+                }
+            }
+            menuFile.close();
+        } else {
+            cout << "Error opening menu file.\n";
+        }
+    }
+};
+
+class RestaurantManager : public User {
+private:
+    string username;
+
+    bool isUsernameAllowed(const string& name) const {
+        ifstream namesFile("names.txt");
+        if (namesFile.is_open()) {
+            string storedName;
+            while (getline(namesFile, storedName)) 
+            {
+                cout<<" "<<storedName<<endl;
+                if (name == storedName) {
+                    namesFile.close();
+                    return true; // Username found in names.txt
+                }
+            }
+            namesFile.close();
+        } else {
+            cout << "Error opening names.txt file.\n";
+        }
+
+        return false; // Username not found in names.txt
+    }
+
+public:
+    void login() override {
+        cout << "Enter restaurant manager username: ";
+        cin >> username;
+
+        // Check if the username is allowed to login
+        if (!isUsernameAllowed(username)) {
+            cout << "Invalid username for a Restaurant Manager. Access denied.\n";
+            exit(0); // Terminate the program
+        }
+    }
+
+    void displayMenu() override {
+        ifstream menuFile("menu.txt");
+        if (menuFile.is_open()) {
+            string menuItem;
+            int count = 1;
+            while (getline(menuFile, menuItem)) {
+                cout << count << ". " << menuItem << endl;
+                count++;
+            }
+            menuFile.close();
+        } else {
+            cout << "Error opening menu file.\n";
+        }
+    }
+
+    void modifyMenu() {
+        // Check if the username is allowed to modify the menu
+        if (!isUsernameAllowed(username)) {
+            cout << "Access denied. You are not authorized to modify the menu.\n";
+            return;
+        }
+
+        ofstream menuFile("menu.txt", ios::app);
+        if (menuFile.is_open()) {
+            cout << "Enter the new item to add to the menu: ";
+            string newItem;
+            cin.ignore();
+            getline(cin, newItem);
+
+            menuFile << newItem << endl;
+            menuFile.close();
+            cout << "Menu updated successfully!\n";
+        } else {
+            cout << "Error opening menu file.\n";
+        }
+    }
+
+    // Implement viewBookedItems to fulfill the pure virtual function requirement
+    void viewBookedItems() override {
+        cout << "Restaurant Manager doesn't have booked items.\n";
+    }
+};
+class DeliveryPerson : public User {
+private:
+    string username;
+
+public:
+    void login() override {
+        cout << "Enter delivery person username: ";
+        cin >> username;
+    }
+
+    void displayMenu() override {
+        cout << "Delivery person doesn't have a menu.\n";
+    }
+
+    void viewBookedItems() override {
+        // Display the list of delivery orders
+        ifstream deliveryOrdersFile("delivery_orders.txt");
+        if (deliveryOrdersFile.is_open()) {
+            string order;
+            int count = 1;
+            while (getline(deliveryOrdersFile, order)) {
+                cout << count << ". " << order << endl;
+                count++;
+            }
+            deliveryOrdersFile.close();
+        } else {
+            cout << "Error opening delivery orders file.\n";
+        }
+    }
+
+    void updateDeliveryStatus() {
+        // Update the delivery status for a selected order
+        // Read delivery orders from the file, update their status, and write back to the file
+        vector<string> deliveryOrders;
+
+        // Read delivery orders from the file
+        ifstream deliveryOrdersFile("delivery_orders.txt");
+        if (deliveryOrdersFile.is_open()) {
+            string order;
+            while (getline(deliveryOrdersFile, order)) {
+                deliveryOrders.push_back(order);
+            }
+            deliveryOrdersFile.close();
+        } else {
+            cout << "Error opening delivery orders file.\n";
+            return;
+        }
+
+        // Display the delivery orders
+        cout << "Delivery Orders:\n";
+        for (size_t i = 0; i < deliveryOrders.size(); ++i) {
+            cout << i + 1 << ". " << deliveryOrders[i] << endl;
+        }
+
+        // Ask the user to enter the order number to update the status
+        cout << "Enter the order number to update the delivery status (or -1 to finish): ";
+        int orderNumber;
+        cin >> orderNumber;
+
+        while (orderNumber != -1) {
+            if (orderNumber >= 1 && orderNumber <= static_cast<int>(deliveryOrders.size())) {
+                // Update the status for the selected order
+                // You can modify the status field in the string accordingly
+                cout << "Enter the new delivery status for order " << orderNumber << ": ";
+                string newStatus;
+                cin.ignore();
+                getline(cin, newStatus);
+
+                // Update the status in the vector
+                deliveryOrders[orderNumber - 1] += " - " + newStatus;
+
+                cout << "Delivery status updated successfully!\n";
+            } else {
+                cout << "Invalid order number. Please try again.\n";
+            }
+
+            // Ask for the next order number to update
+            cout << "Enter the next order number to update the delivery status (or -1 to finish): ";
+            cin >> orderNumber;
+        }
+
+        // Write the updated delivery orders back to the file
+        ofstream updatedDeliveryOrdersFile("delivery_orders.txt");
+        if (updatedDeliveryOrdersFile.is_open()) {
+            for (const string& order : deliveryOrders) {
+                updatedDeliveryOrdersFile << order << "\n";
+            }
+            updatedDeliveryOrdersFile.close();
+        } else {
+            cout << "Error updating delivery orders file.\n";
+        }
+    }
+};
+
+int main() {
+    Customer customer;
+    RestaurantManager manager;
+    DeliveryPerson deliveryPerson;
+
+    int userType;
+    do {
+        cout << "Choose user type:\n1. Customer\n2. Restaurant Manager\n3. Delivery Person\n4. Exit\n";
+        cin >> userType;
+
+        switch (userType) {
+            case 1:
+                customer.login();
+                customer.displayMenu();
+
+                int customerChoice;
+                cout << "Enter the item number to book (or -1 to finish): ";
+                cin >> customerChoice;
+
+                while (customerChoice != -1) {
+                    customer.bookItem(customerChoice);
+                    cout << "Enter the next item number to book (or -1 to finish): ";
+                    cin >> customerChoice;
+                }
+
+                customer.viewBookedItems();
+                break;
+
+            case 2:
+                manager.login();
+                manager.displayMenu();
+                manager.modifyMenu();
+                break;
+
+            case 3:
+                deliveryPerson.login();
+                deliveryPerson.viewBookedItems();
+                deliveryPerson.updateDeliveryStatus();
+                break;
+
+            case 4:
+                cout << "Exiting the system.\n";
+                break;
+
+            default:
+                cout << "Invalid user type. Please try again.\n";
+        }
+    } while (userType != 4);
+
+    return 0;
+}

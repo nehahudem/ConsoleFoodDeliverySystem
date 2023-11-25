@@ -1,0 +1,11 @@
+Booked Items for Customer: monika
+
+  Masala Dose - Rs70 
+  North Indian Thali - Rs210 
+----------
+Booked Items for Customer: keerthana
+  North Indian Thali - Rs210 
+  Pizza - Rs230 
+----------
+Booked Items for Customer: neha
+----------
